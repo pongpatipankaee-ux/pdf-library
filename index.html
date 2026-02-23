@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📚 ห้องสมุด PDF</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e17;
+    --surface: #1a1828;
+    --card: #221f35;
+    --border: #2e2a45;
+    --accent: #e8a045;
+    --accent2: #7c5cbf;
+    --text: #fffffe;
+    --muted: #a7a9be;
+    --red: #ef4565;
+    --green: #3da9a2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── SIDEBAR ─── */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; flex-shrink: 0;
+  }
+  .logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem; color: var(--accent);
+    line-height: 1.2;
+  }
+  .logo p { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+  .sidebar-section { padding: 16px 12px 8px; }
+  .sidebar-label {
+    font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--muted);
+    padding: 0 12px; margin-bottom: 6px;
+  }
+  .tag-btn {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 9px 12px; border-radius: 8px;
+    background: transparent; border: none;
+    color: var(--muted); font-family: 'Sarabun', sans-serif;
+    font-size: 0.88rem; cursor: pointer;
+    transition: all 0.2s; text-align: left;
+  }
+  .tag-btn:hover, .tag-btn.active {
+    background: var(--card); color: var(--text);
+  }
+  .tag-btn.active { color: var(--accent); }
+  .tag-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tag-count {
+    margin-left: auto; font-size: 0.72rem;
+    background: var(--border); border-radius: 20px;
+    padding: 1px 7px; color: var(--muted);
+  }
+
+  .drive-input-section {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .drive-input-section label {
+    font-size: 0.75rem; color: var(--muted);
+    display: block; margin-bottom: 6px;
+  }
+  .drive-input {
+    width: 100%; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'Sarabun', sans-serif;
+    font-size: 0.8rem; padding: 8px 10px; outline: none;
+  }
+  .drive-input:focus { border-color: var(--accent); }
+  .load-btn {
+    width: 100%; margin-top: 8px;
+    background: var(--accent); color: #0f0e17;
+    border: none; border-radius: 8px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 700; font-size: 0.85rem;
+    padding: 9px; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .load-btn:hover { opacity: 0.85; }
+
+  /* ─── MAIN ─── */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px;
+    background: var(--surface); position: sticky; top: 0; z-index: 10;
+  }
+  .search-wrap {
+    flex: 1; position: relative;
+  }
+  .search-wrap i {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%); color: var(--muted); font-size: 0.9rem;
+  }
+  .search-input {
+    width: 100%; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Sarabun', sans-serif;
+    font-size: 0.95rem; padding: 10px 14px 10px 40px; outline: none;
+    transition: border 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .view-toggle { display: flex; gap: 4px; }
+  .view-btn {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--muted); border-radius: 8px; padding: 8px 12px;
+    cursor: pointer; transition: all 0.2s; font-size: 0.9rem;
+  }
+  .view-btn.active { background: var(--accent); color: #0f0e17; border-color: var(--accent); }
+
+  .content { padding: 24px 28px; flex: 1; }
+  .section-title {
+    font-size: 0.75rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ─── GRID / LIST ─── */
+  .book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .book-grid.list-mode {
+    grid-template-columns: 1fr;
+  }
+  .book-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+    cursor: pointer; transition: all 0.25s;
+    position: relative;
+  }
+  .book-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 30px rgba(232,160,69,0.15);
+  }
+  .book-cover {
+    width: 100%; aspect-ratio: 3/4;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; position: relative; overflow: hidden;
+  }
+  .book-cover::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.5));
+  }
+  .book-cover-img {
+    width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0;
+  }
+  .book-info { padding: 12px; }
+  .book-title {
+    font-size: 0.85rem; font-weight: 600;
+    color: var(--text); line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .book-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag-pill {
+    font-size: 0.65rem; padding: 2px 8px;
+    border-radius: 20px; border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .bookmark-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,0.6); border: none;
+    color: var(--muted); border-radius: 6px;
+    width: 30px; height: 30px; cursor: pointer;
+    font-size: 0.8rem; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .bookmark-btn:hover, .bookmark-btn.active { color: var(--accent); }
+
+  /* List mode card */
+  .book-grid.list-mode .book-card {
+    display: flex; flex-direction: row;
+  }
+  .book-grid.list-mode .book-cover {
+    width: 70px; aspect-ratio: auto; height: 90px; flex-shrink: 0; border-radius: 0;
+  }
+  .book-grid.list-mode .book-info {
+    flex: 1; display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+  }
+  .book-grid.list-mode .book-title {
+    flex: 1; -webkit-line-clamp: 1;
+  }
+
+  /* ─── PDF VIEWER ─── */
+  .viewer-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 100;
+    flex-direction: column;
+  }
+  .viewer-overlay.open { display: flex; }
+  .viewer-topbar {
+    background: var(--surface); padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .viewer-title {
+    flex: 1; font-size: 0.95rem; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .viewer-close {
+    background: var(--red); color: #fff; border: none;
+    border-radius: 8px; padding: 6px 14px; cursor: pointer;
+    font-family: 'Sarabun', sans-serif; font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .bm-btn {
+    background: var(--card); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer;
+    font-family: 'Sarabun', sans-serif; font-size: 0.82rem;
+    transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+  }
+  .bm-btn.saved { color: var(--accent); border-color: var(--accent); }
+  .pdf-frame {
+    flex: 1; width: 100%; border: none;
+    background: #525659;
+  }
+
+  /* ─── ADD BOOK MODAL ─── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw;
+  }
+  .modal h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--accent); margin-bottom: 20px;
+    font-size: 1.3rem;
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 5px;
+  }
+  .form-input {
+    width: 100%; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'Sarabun', sans-serif;
+    font-size: 0.9rem; padding: 9px 12px; outline: none;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .btn-cancel {
+    background: var(--border); color: var(--muted);
+    border: none; border-radius: 8px; padding: 9px 18px;
+    cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.88rem;
+  }
+  .btn-save {
+    background: var(--accent); color: #0f0e17;
+    border: none; border-radius: 8px; padding: 9px 18px;
+    cursor: pointer; font-family: 'Sarabun', sans-serif;
+    font-weight: 700; font-size: 0.88rem;
+  }
+
+  /* ─── EMPTY / LOADING ─── */
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; display: block; }
+  .empty-state p { font-size: 0.95rem; }
+
+  .fab {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--accent); color: #0f0e17;
+    width: 54px; height: 54px; border-radius: 50%;
+    border: none; font-size: 1.3rem; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(232,160,69,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 50;
+  }
+  .fab:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(232,160,69,0.5); }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .topbar { padding: 14px 16px; }
+    .content { padding: 16px; }
+    .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <h1>📚 ห้องสมุด</h1>
+      <p>PDF Library จาก Google Drive</p>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">หมวดหมู่</div>
+      <button class="tag-btn active" onclick="filterTag('all')">
+        <span class="tag-dot" style="background:#e8a045"></span>
+        ทั้งหมด
+        <span class="tag-count" id="count-all">0</span>
+      </button>
+      <button class="tag-btn" onclick="filterTag('bookmark')">
+        <span class="tag-dot" style="background:#ef4565"></span>
+        บุ๊กมาร์ก
+        <span class="tag-count" id="count-bookmark">0</span>
+      </button>
+      <div id="tag-list"></div>
+    </div>
+
+    <div class="drive-input-section">
+      <label>📁 Google Drive Folder ID หรือ Link</label>
+      <input class="drive-input" id="folder-input"
+        placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs" />
+      <button class="load-btn" onclick="loadFromDrive()">
+        <i class="fas fa-sync-alt"></i> โหลดจาก Drive
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input class="search-input" id="search" placeholder="ค้นหาชื่อหนังสือ..." oninput="renderBooks()">
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="grid-btn" onclick="setView('grid')" title="Grid">
+          <i class="fas fa-th-large"></i>
+        </button>
+        <button class="view-btn" id="list-btn" onclick="setView('list')" title="List">
+          <i class="fas fa-list"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="section-title" id="section-label">รายการหนังสือ</div>
+      <div class="book-grid" id="book-grid">
+        <div class="empty-state" style="grid-column:1/-1">
+          <i class="fas fa-book-open"></i>
+          <p>ใส่ Google Drive Folder ID แล้วกด "โหลดจาก Drive"<br>หรือกด <strong>+</strong> เพื่อเพิ่มหนังสือด้วยตนเอง</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddModal()" title="เพิ่มหนังสือ">
+  <i class="fas fa-plus"></i>
+</button>
+
+<!-- PDF VIEWER -->
+<div class="viewer-overlay" id="viewer">
+  <div class="viewer-topbar">
+    <span class="viewer-title" id="viewer-title">—</span>
+    <button class="bm-btn" id="bm-page-btn" onclick="bookmarkCurrentPage()">
+      <i class="fas fa-bookmark"></i> บุ๊กมาร์กหน้านี้
+    </button>
+    <button class="viewer-close" onclick="closeViewer()">✕ ปิด</button>
+  </div>
+  <iframe class="pdf-frame" id="pdf-frame" src=""></iframe>
+</div>
+
+<!-- ADD BOOK MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <h2>➕ เพิ่มหนังสือ PDF</h2>
+    <div class="form-group">
+      <label>ชื่อหนังสือ *</label>
+      <input class="form-input" id="new-title" placeholder="เช่น Clean Code">
+    </div>
+    <div class="form-group">
+      <label>Google Drive File ID หรือ Link ไฟล์ PDF *</label>
+      <input class="form-input" id="new-url" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs">
+    </div>
+    <div class="form-group">
+      <label>แท็ก (คั่นด้วยจุลภาค)</label>
+      <input class="form-input" id="new-tags" placeholder="เช่น โปรแกรมมิ่ง, วิทยาศาสตร์">
+    </div>
+    <div class="form-group">
+      <label>สีปก (hex)</label>
+      <input class="form-input" id="new-color" placeholder="#7c5cbf" type="color" style="height:42px;padding:4px 8px;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddModal()">ยกเลิก</button>
+      <button class="btn-save" onclick="saveBook()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────
+let books = JSON.parse(localStorage.getItem('pdfBooks') || '[]');
+let bookmarks = JSON.parse(localStorage.getItem('pdfBookmarks') || '{}'); // { bookId: pageNum }
+let currentView = 'grid';
+let currentTag = 'all';
+let currentBookId = null;
+
+const COLORS = ['#7c5cbf','#e8a045','#3da9a2','#ef4565','#4a90d9','#d45aa9','#5ac45a','#e86845'];
+
+// ─── DRIVE LOADER ─────────────────────────────────────────────
+async function loadFromDrive() {
+  let input = document.getElementById('folder-input').value.trim();
+  if (!input) { alert('กรุณาใส่ Folder ID'); return; }
+
+  // extract ID from full URL
+  const match = input.match(/[-\w]{25,}/);
+  if (!match) { alert('ไม่พบ Folder ID ที่ถูกต้อง'); return; }
+  const folderId = match[0];
+
+  const btn = document.querySelector('.load-btn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังโหลด...';
+  btn.disabled = true;
+
+  try {
+    // Using Drive's public API - no key needed for public folders
+    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/pdf'+and+trashed=false&fields=files(id,name,mimeType,thumbnailLink)&key=AIzaSyDXMPml0LVJFhF7LKJRbTFLdpRrMYRvVYQ`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.error) {
+      alert(`Drive Error: ${data.error.message}\n\nตรวจสอบว่า Folder เป็น Public และใส่ Folder ID ที่ถูกต้อง`);
+      return;
+    }
+
+    const newBooks = (data.files || []).map((f, i) => ({
+      id: f.id,
+      title: f.name.replace(/\.pdf$/i, ''),
+      fileId: f.id,
+      thumbnail: f.thumbnailLink || null,
+      color: COLORS[i % COLORS.length],
+      tags: [],
+      source: 'drive'
+    }));
+
+    // merge — avoid duplicates
+    newBooks.forEach(nb => {
+      if (!books.find(b => b.id === nb.id)) books.push(nb);
+    });
+    save();
+    renderBooks();
+    renderTags();
+    alert(`โหลดสำเร็จ! พบ ${newBooks.length} ไฟล์ PDF`);
+  } catch (e) {
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  } finally {
+    btn.innerHTML = '<i class="fas fa-sync-alt"></i> โหลดจาก Drive';
+    btn.disabled = false;
+  }
+}
+
+// ─── PDF VIEWER ───────────────────────────────────────────────
+function openBook(bookId) {
+  const book = books.find(b => b.id === bookId);
+  if (!book) return;
+  currentBookId = bookId;
+
+  const fileId = book.fileId || book.id;
+  const savedPage = bookmarks[bookId] || 1;
+  const src = `https://drive.google.com/file/d/${fileId}/preview#page=${savedPage}`;
+
+  document.getElementById('viewer-title').textContent = book.title;
+  document.getElementById('pdf-frame').src = src;
+  document.getElementById('viewer').classList.add('open');
+
+  updateBmBtn();
+}
+
+function closeViewer() {
+  document.getElementById('viewer').classList.remove('open');
+  document.getElementById('pdf-frame').src = '';
+  currentBookId = null;
+}
+
+function bookmarkCurrentPage() {
+  if (!currentBookId) return;
+  const page = prompt('บุ๊กมาร์กหน้าที่เท่าไหร่?', bookmarks[currentBookId] || 1);
+  if (page && !isNaN(page)) {
+    bookmarks[currentBookId] = parseInt(page);
+    localStorage.setItem('pdfBookmarks', JSON.stringify(bookmarks));
+    updateBmBtn();
+    renderBooks();
+    showToast(`บุ๊กมาร์กหน้า ${page} แล้ว ✓`);
+  }
+}
+
+function updateBmBtn() {
+  const btn = document.getElementById('bm-page-btn');
+  const p = bookmarks[currentBookId];
+  btn.innerHTML = p
+    ? `<i class="fas fa-bookmark" style="color:var(--accent)"></i> บุ๊กมาร์ก: หน้า ${p}`
+    : `<i class="far fa-bookmark"></i> บุ๊กมาร์กหน้านี้`;
+}
+
+// ─── RENDER ───────────────────────────────────────────────────
+function renderBooks() {
+  const q = document.getElementById('search').value.toLowerCase();
+  let filtered = books.filter(b => b.title.toLowerCase().includes(q));
+
+  if (currentTag === 'bookmark') {
+    filtered = filtered.filter(b => bookmarks[b.id]);
+  } else if (currentTag !== 'all') {
+    filtered = filtered.filter(b => b.tags.includes(currentTag));
+  }
+
+  const grid = document.getElementById('book-grid');
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <i class="fas fa-search"></i>
+      <p>ไม่พบหนังสือที่ค้นหา</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(b => bookCard(b)).join('');
+  document.getElementById('section-label').textContent =
+    `รายการหนังสือ — ${filtered.length} เล่ม`;
+}
+
+function bookCard(b) {
+  const isBm = bookmarks[b.id] ? 'active' : '';
+  const bmPage = bookmarks[b.id] ? `<span class="tag-pill" style="border-color:var(--accent);color:var(--accent)">หน้า ${bookmarks[b.id]}</span>` : '';
+  const tags = b.tags.map(t => `<span class="tag-pill">${t}</span>`).join('');
+  const cover = b.thumbnail
+    ? `<img class="book-cover-img" src="${b.thumbnail}" onerror="this.style.display='none'" /><span style="font-size:2rem;position:relative">📄</span>`
+    : `<span style="position:relative;font-size:2.5rem">📄</span>`;
+
+  return `<div class="book-card" onclick="openBook('${b.id}')">
+    <div class="book-cover" style="background:linear-gradient(135deg,${b.color}99,${b.color})">
+      ${cover}
+    </div>
+    <button class="bookmark-btn ${isBm}" onclick="event.stopPropagation();toggleBookmark('${b.id}')" title="บุ๊กมาร์ก">
+      <i class="fas fa-bookmark"></i>
+    </button>
+    <div class="book-info">
+      <div class="book-title">${b.title}</div>
+      <div class="book-tags">${bmPage}${tags}</div>
+    </div>
+  </div>`;
+}
+
+function toggleBookmark(bookId) {
+  if (bookmarks[bookId]) {
+    delete bookmarks[bookId];
+    showToast('ลบบุ๊กมาร์กแล้ว');
+  } else {
+    bookmarks[bookId] = 1;
+    showToast('เพิ่มบุ๊กมาร์กแล้ว ✓');
+  }
+  localStorage.setItem('pdfBookmarks', JSON.stringify(bookmarks));
+  renderBooks();
+  renderTags();
+}
+
+function renderTags() {
+  const allTags = {};
+  books.forEach(b => b.tags.forEach(t => { allTags[t] = (allTags[t] || 0) + 1; }));
+
+  document.getElementById('count-all').textContent = books.length;
+  document.getElementById('count-bookmark').textContent = Object.keys(bookmarks).length;
+
+  const tagColors = ['#4a90d9','#d45aa9','#5ac45a','#3da9a2','#e86845','#7c5cbf'];
+  document.getElementById('tag-list').innerHTML = Object.entries(allTags).map(([tag, count], i) =>
+    `<button class="tag-btn ${currentTag === tag ? 'active' : ''}" onclick="filterTag('${tag}')">
+      <span class="tag-dot" style="background:${tagColors[i%tagColors.length]}"></span>
+      ${tag}
+      <span class="tag-count">${count}</span>
+    </button>`
+  ).join('');
+}
+
+function filterTag(tag) {
+  currentTag = tag;
+  document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+  renderBooks();
+  renderTags();
+}
+
+function setView(v) {
+  currentView = v;
+  const grid = document.getElementById('book-grid');
+  grid.classList.toggle('list-mode', v === 'list');
+  document.getElementById('grid-btn').classList.toggle('active', v === 'grid');
+  document.getElementById('list-btn').classList.toggle('active', v === 'list');
+}
+
+// ─── ADD BOOK ─────────────────────────────────────────────────
+function openAddModal() { document.getElementById('add-modal').classList.add('open'); }
+function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+
+function saveBook() {
+  const title = document.getElementById('new-title').value.trim();
+  const raw = document.getElementById('new-url').value.trim();
+  const tagsRaw = document.getElementById('new-tags').value.trim();
+  const color = document.getElementById('new-color').value || COLORS[0];
+
+  if (!title || !raw) { alert('กรุณากรอกชื่อและ File ID/Link'); return; }
+
+  const match = raw.match(/[-\w]{25,}/);
+  const fileId = match ? match[0] : raw;
+
+  books.push({
+    id: fileId + '_' + Date.now(),
+    title,
+    fileId,
+    thumbnail: null,
+    color,
+    tags: tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [],
+    source: 'manual'
+  });
+
+  save();
+  renderBooks();
+  renderTags();
+  closeAddModal();
+
+  // reset
+  ['new-title','new-url','new-tags'].forEach(id => document.getElementById(id).value = '');
+  showToast('เพิ่มหนังสือสำเร็จ ✓');
+}
+
+// ─── UTILS ───────────────────────────────────────────────────
+function save() { localStorage.setItem('pdfBooks', JSON.stringify(books)); }
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:90px;right:28px;background:var(--accent);color:#0f0e17;
+    padding:10px 18px;border-radius:10px;font-weight:700;font-size:0.88rem;z-index:999;
+    animation:fadeUp 0.3s ease;`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// click outside modal to close
+document.getElementById('add-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAddModal();
+});
+
+// init
+renderBooks();
+renderTags();
+</script>
+
+<style>
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</body>
+</html>
