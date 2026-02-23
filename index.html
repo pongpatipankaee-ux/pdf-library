@@ -432,51 +432,60 @@ let currentBookId = null;
 
 const COLORS = ['#7c5cbf','#e8a045','#3da9a2','#ef4565','#4a90d9','#d45aa9','#5ac45a','#e86845'];
 
-// ─── DRIVE LOADER ─────────────────────────────────────────────
-async function loadFromDrive() {
-  let input = document.getElementById('folder-input').value.trim();
-  if (!input) { alert('กรุณาใส่ Folder ID'); return; }
+// ─── CONFIG: ใส่ API Key และ Folder IDs ที่นี่ ───────────────
+const API_KEY = 'YOUR_API_KEY_HERE'; // ← ใส่ API Key ของคุณ
+const DEFAULT_FOLDERS = [
+  '1Z-2vMD8QEQqRaR6u47oofr5oF6dbSeuo',
+  '1WekLbRwVhtnLopMN9abjFH-WpaXplcJG',
+  '1Cviv9jUjRgzFn7dS_i-b1-rOgQW_lSuu'
+];
 
-  // extract ID from full URL
-  const match = input.match(/[-\w]{25,}/);
-  if (!match) { alert('ไม่พบ Folder ID ที่ถูกต้อง'); return; }
-  const folderId = match[0];
+// ─── DRIVE LOADER ─────────────────────────────────────────────
+async function fetchFolder(folderId) {
+  const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/pdf'+and+trashed=false&fields=files(id,name,thumbnailLink)&key=${API_KEY}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.files || [];
+}
+
+async function loadFromDrive() {
+  const input = document.getElementById('folder-input').value.trim();
+  const foldersToLoad = input
+    ? [input.match(/[-\w]{25,}/)?.[0]].filter(Boolean)
+    : DEFAULT_FOLDERS;
+
+  if (!foldersToLoad.length) { alert('กรุณาใส่ Folder ID'); return; }
 
   const btn = document.querySelector('.load-btn');
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังโหลด...';
   btn.disabled = true;
 
   try {
-    // Using Drive's public API - no key needed for public folders
-    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/pdf'+and+trashed=false&fields=files(id,name,mimeType,thumbnailLink)&key=AIzaSyDXMPml0LVJFhF7LKJRbTFLdpRrMYRvVYQ`;
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (data.error) {
-      alert(`Drive Error: ${data.error.message}\n\nตรวจสอบว่า Folder เป็น Public และใส่ Folder ID ที่ถูกต้อง`);
-      return;
+    let totalNew = 0;
+    for (const folderId of foldersToLoad) {
+      const files = await fetchFolder(folderId);
+      files.forEach((f, i) => {
+        if (!books.find(b => b.id === f.id)) {
+          books.push({
+            id: f.id,
+            title: f.name.replace(/\.pdf$/i, ''),
+            fileId: f.id,
+            thumbnail: f.thumbnailLink || null,
+            color: COLORS[(books.length + i) % COLORS.length],
+            tags: [],
+            source: 'drive'
+          });
+          totalNew++;
+        }
+      });
     }
-
-    const newBooks = (data.files || []).map((f, i) => ({
-      id: f.id,
-      title: f.name.replace(/\.pdf$/i, ''),
-      fileId: f.id,
-      thumbnail: f.thumbnailLink || null,
-      color: COLORS[i % COLORS.length],
-      tags: [],
-      source: 'drive'
-    }));
-
-    // merge — avoid duplicates
-    newBooks.forEach(nb => {
-      if (!books.find(b => b.id === nb.id)) books.push(nb);
-    });
     save();
     renderBooks();
     renderTags();
-    alert(`โหลดสำเร็จ! พบ ${newBooks.length} ไฟล์ PDF`);
+    showToast(`โหลดสำเร็จ! พบ ${totalNew} ไฟล์ PDF ✓`);
   } catch (e) {
-    alert('เกิดข้อผิดพลาด: ' + e.message);
+    alert('เกิดข้อผิดพลาด: ' + e.message + '\n\nตรวจสอบว่า Folder เป็น Public และ API Key ถูกต้อง');
   } finally {
     btn.innerHTML = '<i class="fas fa-sync-alt"></i> โหลดจาก Drive';
     btn.disabled = false;
@@ -671,9 +680,12 @@ document.getElementById('add-modal').addEventListener('click', function(e) {
   if (e.target === this) closeAddModal();
 });
 
-// init
+// init — โหลด 3 Folder อัตโนมัติถ้ายังไม่มีหนังสือ
 renderBooks();
 renderTags();
+if (books.length === 0) {
+  loadFromDrive();
+}
 </script>
 
 <style>
